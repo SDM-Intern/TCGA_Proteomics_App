@@ -10,6 +10,12 @@ library(dplyr)
 library(beeswarm)
 library(RCurl)
 library(data.table)
+library(RMariaDB)
+
+# database
+database <- dbConnect(RMariaDB::MariaDB(), user='payton', password='@p312770', dbname='test', host='localhost')
+print("Connected to database")
+
 
 #Required files
 #Common files
@@ -20,7 +26,8 @@ print("Read - mutation file")
 # TMT Files
 genenames_tmt = read.table(file = "Data_files/TMT/genenames.txt", stringsAsFactors=F, header=F, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
 print("Read - gene file for TMT")
-clinicaldata_tmt <- read.table(file = "Data_files/TMT/clinical.txt", header=T, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
+#clinicaldata_tmt <- read.table(file = "Data_files/TMT/clinical.txt", header=T, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
+clinicaldata_tmt <- dbGetQuery(database, "SELECT * FROM TMT;")
 print("Read - clinical data for TMT")
 # LFQ Files
 genenames_lfq = read.table(file = "Data_files/LFQ/genenames.txt",stringsAsFactors=F, header=F, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
