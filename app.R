@@ -17,6 +17,10 @@ database <- dbConnect(RMariaDB::MariaDB(), user='payton', password='@p312770', d
 print("Connected to database")
 
 
+# database vars
+genenames_choices <- dbGetQuery(database, "SELECT Gene FROM Genes WHERE Type='TMT';")
+
+
 #Required files
 #Common files
 dropdowngenes <- read.table(file = "Data_files/mutation_specific_genes.txt", sep="\t", skipNul=T, encoding="UTF-8", quote = "")
@@ -26,8 +30,7 @@ print("Read - mutation file")
 # TMT Files
 genenames_tmt = read.table(file = "Data_files/TMT/genenames.txt", stringsAsFactors=F, header=F, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
 print("Read - gene file for TMT")
-#clinicaldata_tmt <- read.table(file = "Data_files/TMT/clinical.txt", header=T, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
-clinicaldata_tmt <- dbGetQuery(database, "SELECT * FROM TMT;")
+clinicaldata_tmt <- read.table(file = "Data_files/TMT/clinical.txt", header=T, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
 print("Read - clinical data for TMT")
 # LFQ Files
 genenames_lfq = read.table(file = "Data_files/LFQ/genenames.txt",stringsAsFactors=F, header=F, sep="\t", skipNul=T, encoding="UTF-8", quote = "")
@@ -142,21 +145,26 @@ shinyApp (
   {
     ###### TMT APP STUFF ######
     # Updating the selectize options
-    updateSelectizeInput(session, 'single_gene_name_1_t', choices = genenames_tmt$V1, server = TRUE)
-    updateSelectizeInput(session, 'single_gene_name_2_t', choices = genenames_tmt$V1, server = TRUE)
-    updateSelectizeInput(session, 'single_gene_name_3_t', choices = genenames_tmt$V1, server = TRUE)
-    updateSelectizeInput(session, 'single_gene_name_4_t', choices = genenames_tmt$V1, server = TRUE)
-    updateSelectizeInput(session, 'single_gene_name_5_t', choices = genenames_tmt$V1, server = TRUE)
+    updateSelectizeInput(session, 'single_gene_name_1_t', choices = genenames_choices$Gene, server = TRUE)
+    updateSelectizeInput(session, 'single_gene_name_2_t', choices = genenames_choices$Gene, server = TRUE)
+    updateSelectizeInput(session, 'single_gene_name_3_t', choices = genenames_choices$Gene, server = TRUE)
+    updateSelectizeInput(session, 'single_gene_name_4_t', choices = genenames_choices$Gene, server = TRUE)
+    updateSelectizeInput(session, 'single_gene_name_5_t', choices = genenames_choices$Gene, server = TRUE)
+    
+    
+    
+    
     # MULTIPLOT #
     output$multigene_plot_tmt <- renderPlotly({
-      genesToPlot <- input$single_gene_name_1_t
-      #genesToPlot <- c("DNMT3A","TP53")
+      #genesToPlot <- input$single_gene_name_1_t
+      genesToPlot <- c("DNMT3A","TP53")
       if(length(genesToPlot) > 0)
       {
         tcga = NULL
         for(g in genesToPlot){
-          #tcga = rbind(tcga,read.table(paste0("../AML_proteomics-tmp/TCGA_Proteomics_app/Gene_files/TMT/",g,".tsv"),sep="\t",stringsAsFactors=F,header=T,check.names=FALSE))
-          tcga = rbind(tcga,read.table(paste0("https://storage.googleapis.com/tcga_shiny/TCGA_Proteomics_app/Gene_files/TMT/",g,".tsv"),sep="\t",stringsAsFactors=F,header=T,check.names=FALSE))
+          tcga = rbind(tcga,read.table(paste0("/home/payton/research/washu/TCGA_Proteomics_App/Prep/TCGA_Proteomics_app/Gene_files/TMT/",g,".tsv"),sep="\t",stringsAsFactors=F,header=T,check.names=FALSE))
+          #tcga = rbind(tcga,read.table(paste0("https://storage.googleapis.com/tcga_shiny/TCGA_Proteomics_app/Gene_files/TMT/",g,".tsv"),sep="\t",stringsAsFactors=F,header=T,check.names=FALSE))
+          #SELECT Gene,UPN,Value FROM Genes WHERE (Gene='DNMT3A' OR Gene='TP53') AND Type='TMT';
         }
         df = melt(tcga,id.vars="gene")
         names(df) <- c("Gene", "UPN", "Log2.Expression")
@@ -176,6 +184,14 @@ shinyApp (
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmtm, file, quote = F, row.names = F, sep = ",")}
     )
+    
+    
+    
+    
+    
+    
+    
+    
     # SUBTYPE #
     output$singlegene_plot_subtype_tmt <- renderPlotly({
       genesToPlot <- toupper(input$single_gene_name_2_t)
@@ -222,6 +238,13 @@ shinyApp (
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmts, file, quote = F, row.names = F, sep = "\t")}
     )
+    
+    
+    
+    
+    
+    
+    
     # CYTOGENETICS #
     output$singlegene_plot_cytogenetics_tmt <- renderPlotly({
       genesToPlot <- toupper(input$single_gene_name_3_t)
@@ -268,6 +291,16 @@ shinyApp (
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmtc, file, quote = F, row.names = F, sep = "\t")}
     )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     # FUSION #
     output$singlegene_plot_fusion_tmt <- renderPlotly({
       genesToPlot <- toupper(input$single_gene_name_4_t)
@@ -314,6 +347,19 @@ shinyApp (
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmtf, file, quote = F, row.names = F, sep = "\t")}
     )
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     # MUTATION #
     output$singlegene_plot_mutation_tmt <- renderPlotly({
       normalgenes <- toupper(input$single_gene_name_5_t)
@@ -368,6 +414,13 @@ shinyApp (
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmtw, file, quote = F, row.names = F, sep = "\t")}
     )
+    
+    
+    
+    
+    
+    
+    
     
     
     ###### LFQ APP STUFF ######
