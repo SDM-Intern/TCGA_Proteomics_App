@@ -13,7 +13,7 @@ library(data.table)
 library(RMariaDB)
 
 # database
-database <- dbConnect(RMariaDB::MariaDB(), user='payton', password='@p312770', dbname='test', host='localhost')
+database <- dbConnect(RMariaDB::MariaDB(), user='payton', password='password', dbname='test', host='localhost')
 print("Connected to database")
 
 
@@ -174,7 +174,6 @@ shinyApp (
         df <- merge(df, clinicaldata_tmt, by="UPN") # SELECT * FROM TMT_Clinical WHERE (UPN="ND8" OR ...);
         dmtm <<- df
         
-        # Plotting
         g <- ggplot(df,aes(fill=Gene, y=Log2.Expression, x=Name, text = paste0("UPN ID: ",UPN,"<br />TCGA Sample ID: ", TCGA_ID))) + geom_bar(position="dodge", stat="identity") + theme_bw() +
           theme(text=element_text(size=12, family="avenir", face="bold"), axis.text=element_text(size=10, family="avenir", face="bold"), 
                 axis.title=element_text(size=12, family="avenir", face="bold"),
@@ -230,6 +229,7 @@ shinyApp (
             # plottinggene shape is || Values | UPN ||
             
             
+            # Data cleanup and preparing for output
             finalmatrix <- merge(plottinggene, bysubtype, by="UPN")
             finalmatrix <- finalmatrix[,c(2,3,4,5,6)]
             colnames(finalmatrix) <- c("Log2.Expression","Name","TCGA_ID","TCGA_Name","FAB")
@@ -238,7 +238,6 @@ shinyApp (
             finalmatrix <- finalmatrix[,c(2,3,4,5,1,6)]
             dmts <<- finalmatrix
             
-            # Plotting
             g <- ggplot(finalmatrix,aes(FAB, Log2.Expression, text = paste0("UPN ID: ",Name,"<br />TCGA Sample ID: ", TCGA_ID))) + geom_quasirandom(size = 0.8) + theme_bw() +
               ggtitle(paste0("Log2 Expression for ",genesToPlot)) + 
               theme(text=element_text(size=12, family="avenir", face="bold"), 
@@ -264,10 +263,10 @@ shinyApp (
     
     # CYTOGENETICS #
     output$singlegene_plot_cytogenetics_tmt <- renderPlotly({
-      genesToPlot <- toupper(input$single_gene_name_3_t)
-      subtypesToPlot <- input$cytogenetics_t
-      #genesToPlot <- "DNMT3A"
-      #subtypesToPlot <- c("Poor","Good","Intermediate","Healthy Lin-")
+      #genesToPlot <- toupper(input$single_gene_name_3_t)
+      #subtypesToPlot <- input$cytogenetics_t
+      genesToPlot <- "DNMT3A"
+      subtypesToPlot <- c("Poor","Good","Intermediate","Healthy Lin-")
       tcga = NULL
       if(length(subtypesToPlot) > 0)
       {
@@ -281,12 +280,16 @@ shinyApp (
             #tcga = as.data.frame(read.table(file = paste0("../AML_proteomics-tmp/TCGA_Proteomics_app/Gene_files/TMT/",genesToPlot,".tsv"), header = TRUE, stringsAsFactors = F,check.names=FALSE))
             rownames(tcga) = tcga$gene
             tcga <- tcga[,-1]
+            
+            
             bysubtype <- filter(clinicaldata_tmt, clinicaldata_tmt$Cyto_Risk %in% subtypesToPlot)
             plottinggene <- tcga[,colnames(tcga) %in% bysubtype$UPN]
             plottinggene <- t(plottinggene)
             plottinggene <- as.data.frame(plottinggene)
             plottinggene$UPN <- rownames(plottinggene)
             rownames(plottinggene) <- NULL
+            
+            # Data cleanup and preparing for output
             finalmatrix <- merge(plottinggene, bysubtype, by="UPN")
             finalmatrix <- finalmatrix[,c(2,3,4,5,7)]
             colnames(finalmatrix) <- c("Log2.Expression","Name","TCGA_ID","TCGA_Name","Cyto_risk")
@@ -295,6 +298,7 @@ shinyApp (
             finalmatrix$Gene <- genesToPlot
             finalmatrix <- finalmatrix[,c(2,3,4,5,1,6)]
             dmtc <<- finalmatrix
+            
             g <- ggplot(finalmatrix,aes(Cyto_risk, Log2.Expression, text = paste0("UPN ID: ",Name,"<br />TCGA Sample ID: ", TCGA_ID))) + geom_quasirandom(size = 0.8) + theme_bw() +
               ggtitle(paste0("Log2 Expression for ",genesToPlot)) + 
               theme(text=element_text(size=12, family="avenir", face="bold"), axis.text=element_text(size=12, family="avenir", face="bold")) +
@@ -304,6 +308,8 @@ shinyApp (
         }
       }
     })
+    
+    # Output file
     output$downloadData_t_c <- downloadHandler(
       filename = function() {paste0("Output.csv")},
       content = function(file) {write.csv(dmtc, file, quote = F, row.names = F, sep = "\t")}
@@ -337,12 +343,14 @@ shinyApp (
             #tcga = as.data.frame(read.table(file = paste0("../AML_proteomics-tmp/TCGA_Proteomics_app/Gene_files/TMT/",genesToPlot,".tsv"), header = TRUE, stringsAsFactors = F,check.names=FALSE))
             rownames(tcga) = tcga$gene
             tcga <- tcga[,-1]
+            
             bysubtype <- filter(clinicaldata_tmt, clinicaldata_tmt$Fusion %in% subtypesToPlot)
             plottinggene <- tcga[,colnames(tcga) %in% bysubtype$UPN]
             plottinggene <- t(plottinggene)
             plottinggene <- as.data.frame(plottinggene)
             plottinggene$UPN <- rownames(plottinggene)
             rownames(plottinggene) <- NULL
+            
             finalmatrix <- merge(plottinggene, bysubtype, by="UPN")
             finalmatrix <- finalmatrix[,c(2,3,4,5,8)]
             colnames(finalmatrix) <- c("Log2.Expression","Name","TCGA_ID","TCGA_Name","Fusion")
@@ -351,6 +359,7 @@ shinyApp (
             finalmatrix$Gene <- genesToPlot
             finalmatrix <- finalmatrix[,c(2,3,4,5,1,6)]
             dmtf <<- finalmatrix
+            
             g <- ggplot(finalmatrix,aes(Fusion, Log2.Expression, text = paste0("UPN ID: ",Name,"<br />TCGA Sample ID: ", TCGA_ID))) + geom_quasirandom(size = 0.8) + theme_bw() +
               ggtitle(paste0("Log2 Expression for ",genesToPlot)) + 
               theme(text=element_text(size=12, family="avenir", face="bold"),axis.text=element_text(size=12, family="avenir", face="bold"), axis.text.x = element_text(angle = 45)) +
